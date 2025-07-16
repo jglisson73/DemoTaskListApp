@@ -347,17 +347,31 @@ const TaskItem: React.FC<{ task: Task; onUpdate: () => void }> = ({ task, onUpda
 const TaskForm: React.FC<{ projects: Project[]; onSubmit: () => void }> = ({ projects, onSubmit }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [projectId, setProjectId] = useState(projects[0]?.id || '');
+  const [projectId, setProjectId] = useState<number | null>(null);
   const [priority, setPriority] = useState<Task['priority']>('Medium');
   const [dueDate, setDueDate] = useState('');
 
+  // Update projectId when projects are loaded
+  useEffect(() => {
+    if (projects.length > 0 && (projectId === null || !projects.find(p => p.id === projectId))) {
+      setProjectId(projects[0].id);
+    }
+  }, [projects, projectId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate that we have a valid project selected
+    if (!projectId) {
+      console.error('No project selected');
+      return;
+    }
+
     try {
       await axios.post('/api/tasks', {
         title,
         description,
-        project_id: parseInt(projectId.toString()),
+        project_id: projectId,
         priority,
         due_date: dueDate || null
       });
@@ -399,8 +413,8 @@ const TaskForm: React.FC<{ projects: Project[]; onSubmit: () => void }> = ({ pro
             <label className="form-label">Project</label>
             <select
               className="form-control"
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
+              value={projectId || ''}
+              onChange={(e) => setProjectId(parseInt(e.target.value))}
               required
             >
               {projects.map(project => (
@@ -431,7 +445,9 @@ const TaskForm: React.FC<{ projects: Project[]; onSubmit: () => void }> = ({ pro
             />
           </div>
         </div>
-        <button type="submit" className="btn btn-primary">Create Task</button>
+        <button type="submit" className="btn btn-primary" disabled={projects.length === 0 || !projectId}>
+          Create Task
+        </button>
       </form>
     </div>
   );
