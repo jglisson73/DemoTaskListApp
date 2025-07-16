@@ -89,7 +89,7 @@ def register():
         db.session.add(default_project)
         db.session.commit()
         
-        access_token = create_access_token(identity=user.id)
+        access_token = create_access_token(identity=str(user.id))
         return jsonify({'access_token': access_token, 'user_id': user.id}), 201
     except Exception as e:
         return jsonify({'message': str(e)}), 500
@@ -104,7 +104,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         
         if user and check_password_hash(user.password_hash, password):
-            access_token = create_access_token(identity=user.id)
+            access_token = create_access_token(identity=str(user.id))
             return jsonify({'access_token': access_token, 'user_id': user.id}), 200
         
         return jsonify({'message': 'Invalid credentials'}), 401
@@ -116,7 +116,7 @@ def login():
 @jwt_required()
 def get_tasks():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         project_id = request.args.get('project_id')
         status = request.args.get('status')
         
@@ -154,7 +154,7 @@ def get_tasks():
 @jwt_required()
 def create_task():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         data = request.get_json()
         
         # Validate project ownership
@@ -193,7 +193,7 @@ def create_task():
 @jwt_required()
 def update_task(task_id):
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         data = request.get_json()
         
         task = Task.query.join(Project).filter(
@@ -228,7 +228,7 @@ def update_task(task_id):
 @jwt_required()
 def delete_task(task_id):
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         task = Task.query.join(Project).filter(
             Task.id == task_id,
@@ -250,7 +250,7 @@ def delete_task(task_id):
 @jwt_required()
 def get_projects():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         projects = Project.query.filter_by(owner_id=user_id).all()
         
         project_list = []
@@ -272,7 +272,7 @@ def get_projects():
 @jwt_required()
 def create_project():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         data = request.get_json()
         
         project = Project(
@@ -297,7 +297,7 @@ def create_project():
 @jwt_required()
 def get_user():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         user = User.query.get(user_id)
         
         if not user:
