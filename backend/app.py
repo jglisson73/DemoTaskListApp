@@ -293,6 +293,51 @@ def create_project():
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
+@app.route('/api/projects/<int:project_id>', methods=['PUT'])
+@jwt_required()
+def update_project(project_id):
+    try:
+        user_id = int(get_jwt_identity())
+        data = request.get_json()
+        
+        project = Project.query.filter_by(id=project_id, owner_id=user_id).first()
+        if not project:
+            return jsonify({'message': 'Project not found or access denied'}), 404
+        
+        # Update fields
+        if 'name' in data:
+            project.name = data['name']
+        if 'description' in data:
+            project.description = data['description']
+        
+        db.session.commit()
+        
+        return jsonify({'message': 'Project updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+@app.route('/api/projects/<int:project_id>', methods=['DELETE'])
+@jwt_required()
+def delete_project(project_id):
+    try:
+        user_id = int(get_jwt_identity())
+        
+        project = Project.query.filter_by(id=project_id, owner_id=user_id).first()
+        if not project:
+            return jsonify({'message': 'Project not found or access denied'}), 404
+        
+        # Check if this is the user's last project
+        project_count = Project.query.filter_by(owner_id=user_id).count()
+        if project_count <= 1:
+            return jsonify({'message': 'Cannot delete your last project'}), 400
+        
+        db.session.delete(project)
+        db.session.commit()
+        
+        return jsonify({'message': 'Project deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
 @app.route('/api/user', methods=['GET'])
 @jwt_required()
 def get_user():

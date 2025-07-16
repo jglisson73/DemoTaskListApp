@@ -343,8 +343,189 @@ const TaskItem: React.FC<{ task: Task; onUpdate: () => void }> = ({ task, onUpda
   );
 };
 
+// Project Card Component
+const ProjectCard: React.FC<{ project: Project; onUpdate: () => void }> = ({ project, onUpdate }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState(project.name);
+  const [description, setDescription] = useState(project.description);
+  const [loading, setLoading] = useState(false);
+
+  const handleUpdate = async () => {
+    setLoading(true);
+    try {
+      await axios.put(`/api/projects/${project.id}`, {
+        name,
+        description
+      });
+      setIsEditing(false);
+      onUpdate();
+    } catch (error) {
+      console.error('Error updating project:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm(`Are you sure you want to delete "${project.name}"? This will also delete all tasks in this project.`)) {
+      try {
+        await axios.delete(`/api/projects/${project.id}`);
+        onUpdate();
+      } catch (error) {
+        console.error('Error deleting project:', error);
+      }
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="project-card editing">
+        <div className="form-group">
+          <input
+            type="text"
+            className="form-control"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Project name"
+          />
+        </div>
+        <div className="form-group">
+          <textarea
+            className="form-control"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Project description"
+            rows={2}
+          />
+        </div>
+        <div className="project-actions">
+          <button 
+            className="btn btn-primary" 
+            onClick={handleUpdate}
+            disabled={loading || !name.trim()}
+          >
+            {loading ? 'Saving...' : 'Save'}
+          </button>
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => {
+              setIsEditing(false);
+              setName(project.name);
+              setDescription(project.description);
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="project-card">
+      <div className="project-header">
+        <h4 className="project-name">{project.name}</h4>
+        <div className="project-menu">
+          <button 
+            className="btn-icon" 
+            onClick={() => setIsEditing(true)}
+            title="Edit project"
+          >
+            ✏️
+          </button>
+          <button 
+            className="btn-icon" 
+            onClick={handleDelete}
+            title="Delete project"
+          >
+            🗑️
+          </button>
+        </div>
+      </div>
+      {project.description && (
+        <p className="project-description">{project.description}</p>
+      )}
+      <div className="project-stats">
+        <span className="task-count">{project.task_count} tasks</span>
+        <span className="project-date">
+          Created {new Date(project.created_at).toLocaleDateString()}
+        </span>
+      </div>
+    </div>
+  );
+};
+const ProjectForm: React.FC<{ onSubmit: () => void; onCancel: () => void }> = ({ onSubmit, onCancel }) => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      await axios.post('/api/projects', {
+        name,
+        description
+      });
+      setName('');
+      setDescription('');
+      onSubmit();
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Error creating project');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <div className="modal-header">
+          <h3>Create New Project</h3>
+          <button className="close-btn" onClick={onCancel}>&times;</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Project Name</label>
+            <input
+              type="text"
+              className="form-control"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter project name"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Description</label>
+            <textarea
+              className="form-control"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter project description (optional)"
+              rows={3}
+            />
+          </div>
+          {error && <div className="error-message">{error}</div>}
+          <div className="modal-actions">
+            <button type="button" className="btn btn-secondary" onClick={onCancel}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Creating...' : 'Create Project'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // Task Form Component
-const TaskForm: React.FC<{ projects: Project[]; onSubmit: () => void }> = ({ projects, onSubmit }) => {
+const TaskForm: React.FC<{ projects: Project[]; onSubmit: () => void; onCreateProject: () => void }> = ({ projects, onSubmit, onCreateProject }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [projectId, setProjectId] = useState<number | null>(null);
@@ -411,16 +592,27 @@ const TaskForm: React.FC<{ projects: Project[]; onSubmit: () => void }> = ({ pro
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
           <div className="form-group">
             <label className="form-label">Project</label>
-            <select
-              className="form-control"
-              value={projectId || ''}
-              onChange={(e) => setProjectId(parseInt(e.target.value))}
-              required
-            >
-              {projects.map(project => (
-                <option key={project.id} value={project.id}>{project.name}</option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'end' }}>
+              <select
+                className="form-control"
+                value={projectId || ''}
+                onChange={(e) => setProjectId(parseInt(e.target.value))}
+                required
+                style={{ flex: 1 }}
+              >
+                {projects.map(project => (
+                  <option key={project.id} value={project.id}>{project.name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={onCreateProject}
+                title="Create new project"
+              >
+                +
+              </button>
+            </div>
           </div>
           <div className="form-group">
             <label className="form-label">Priority</label>
@@ -458,6 +650,7 @@ const Dashboard: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [filter, setFilter] = useState({ status: '', project: '' });
+  const [showProjectForm, setShowProjectForm] = useState(false);
   const auth = useContext(AuthContext);
 
   useEffect(() => {
@@ -481,6 +674,11 @@ const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Error fetching projects:', error);
     }
+  };
+
+  const handleProjectCreated = () => {
+    setShowProjectForm(false);
+    fetchProjects();
   };
 
   const filteredTasks = tasks.filter(task => {
@@ -528,7 +726,36 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <TaskForm projects={projects} onSubmit={fetchTasks} />
+        <TaskForm 
+          projects={projects} 
+          onSubmit={fetchTasks} 
+          onCreateProject={() => setShowProjectForm(true)}
+        />
+
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3>Projects</h3>
+            <button 
+              className="btn btn-primary"
+              onClick={() => setShowProjectForm(true)}
+            >
+              + New Project
+            </button>
+          </div>
+          {projects.length === 0 ? (
+            <p>No projects found. Create your first project!</p>
+          ) : (
+            <div className="projects-grid">
+              {projects.map(project => (
+                <ProjectCard 
+                  key={project.id} 
+                  project={project} 
+                  onUpdate={fetchProjects}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="card">
           <h3>Tasks</h3>
@@ -568,6 +795,13 @@ const Dashboard: React.FC = () => {
             ))
           )}
         </div>
+        
+        {showProjectForm && (
+          <ProjectForm 
+            onSubmit={handleProjectCreated}
+            onCancel={() => setShowProjectForm(false)}
+          />
+        )}
       </div>
     </div>
   );

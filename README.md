@@ -6,11 +6,12 @@ A modern task management web application built with React and Flask that allows 
 
 - **User Authentication**: JWT-based registration and login
 - **Task Management**: Create, read, update, and delete tasks
-- **Project Organization**: Organize tasks within projects
+- **Project Organization**: Create, edit, and organize tasks within projects
+- **Project Management**: Create new projects, edit project details, and delete projects
 - **Priority Management**: Set task priorities (Low, Medium, High, Critical)
 - **Status Tracking**: Track task status (Todo, In Progress, Completed)
 - **Filtering & Search**: Filter tasks by status and project
-- **Dashboard**: Overview of task statistics
+- **Dashboard**: Overview of task statistics and project management
 - **Responsive Design**: Works on desktop and mobile devices
 
 ## Tech Stack
@@ -97,11 +98,13 @@ The frontend application will be available at `http://localhost:3000`
 
 1. **Registration**: Create a new account with username, email, and password
 2. **Login**: Access your account with username and password
-3. **Dashboard**: View task statistics and overview
-4. **Create Tasks**: Add new tasks with title, description, priority, and due date
-5. **Manage Tasks**: Edit, update status, or delete existing tasks
-6. **Filter Tasks**: Use filters to view tasks by status or project
-7. **Projects**: Tasks are automatically organized in projects (default project created on registration)
+3. **Dashboard**: View task statistics and project overview
+4. **Create Projects**: Click "+ New Project" to create custom projects for organizing tasks
+5. **Manage Projects**: Edit project names/descriptions or delete projects using the hover actions
+6. **Create Tasks**: Add new tasks with title, description, priority, due date, and assign to projects
+7. **Manage Tasks**: Edit, update status, or delete existing tasks
+8. **Filter Tasks**: Use filters to view tasks by status or project
+9. **Project Selection**: When creating tasks, select from your available projects or create new ones
 
 ## API Endpoints
 
@@ -119,6 +122,8 @@ The frontend application will be available at `http://localhost:3000`
 ### Projects
 - `GET /api/projects` - Get all projects
 - `POST /api/projects` - Create a new project
+- `PUT /api/projects/{id}` - Update a project
+- `DELETE /api/projects/{id}` - Delete a project
 
 ## Database Schema
 
